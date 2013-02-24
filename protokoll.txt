@@ -1,0 +1,93 @@
+Basics (Erläuterung des Aufbaus)
+================================
+client = <
+server = >
+
+identifier::source::content als String
+
+identifier = Typ der Nachricht
+source = Quelle der Nachricht
+content = Nachricht
+
+
+Ok Messages
+===========
+> ok
+
+ok = Aktion erfolgreich. Wird bei jedem (erfolgreichen) Befehl zurückgeliefert
+
+
+List Clients
+============
+< list
+> clients::client1,client2,client3
+
+list = Befehl, um alle clients aufzulisten
+clients = Antwort. Alle Clients werden Komma separiert aufgezählt
+
+Error Messages
+==============
+> err::SERVER::errormessage
+
+err = Fehler identifier
+errormessage = Fehlermeldung als String
+
+
+Handshake
+=========
+< login::username::serverpasswort
+> ok
+oder
+> err::SERVER::errormessage
+
+login = Login identifier
+
+
+Nachricht von user
+==================
+< say::username::Das ist eine Nachricht vom user
+> ok
+
+say = identifier für Nachrichten an alle
+username = username, der die Nachricht an den server schickt. Der Username kann während der Laufzeit geändert werden, muss aber über den rename Befehl angekündigt werden.
+
+
+Benachrichtigungen vom Server
+=============================
+> notify::SERVER::"nachricht vom server"
+
+notify = notification identifier
+
+
+Eingehende Nachricht vom Server
+===============================
+> msg::username::Nachricht, die der Server an den Client leitet.
+
+username = Username, von dem die Nachricht kommt
+msg = Message identifier
+
+
+Nickname change
+===============
+< rename::old_username::new_username
+> ok
+oder
+> err::SERVER::nickname already in use
+danach
+> notify::SERVER::old_username is now known as new_username
+
+old_username = alter Username
+rename = Username change identifier
+new_username = neuer Username
+
+
+Logout vom Server
+================================
+< logout::username::reason
+> ok
+(connection wird gekillt)
+
+logout = logout identifier
+username = Benutzername des ausloggenden users
+reason = Grund des logouts
+
