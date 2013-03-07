@@ -1,8 +1,20 @@
 #!/usr/bin/perl -w
-#
+# 
 # ChatSimple Client by Florian Schiessl. <florian at floriware.de>
-#
+# 
 # Dev-Start: 23.2.2013
+# 
+# Usage:
+# ./chatsimple-client.pl [-u username] [-p password] [host[:port]
+#
+# Options
+# -i --ip   : IP-Address / Hostname of Server
+# -o --port : Server-Port
+# -n --no-colors : Don't use colors
+# -u --user : Your username
+# -p --password : The server's password
+# -q --quiet : Don't show welcome message and connection information
+# -t --no-timestamps : Don't draw timestamp before messages.
 #
 # Changelog:
 # 4.3.2013 Florian Schiessl:
@@ -12,6 +24,9 @@
 # - added &requestok (function to wait for servers 'ok' answer)
 # - added reverse line feed for own messages
 # - added colors for yourself (cyan) and others (magenta)
+# 7.3.2013 Florian Schiessl:
+# - adding command line options for user,pass,etc...
+#
 
 use strict;
 use IO::Socket;
@@ -20,7 +35,8 @@ use threads::shared;
 use Thread::Queue;
 use Term::ANSIColor;
 use Term::ReadKey;
-use Time::HiRes qw( usleep );
+use Getopt::Long qw ( :config no_ignore_case bundling );
+#use Time::HiRes qw( usleep );
 
 ##################
 # Configuration
@@ -28,16 +44,43 @@ my $sep = '::'; # Separator for commands
 my $default_port = 5060;
 my $default_ip = "127.0.0.1";
 
+####################
+# Getting options
+my $ip;
+my $port;
+my $no_colors = 0;
+my $username :shared; # The used username as shared (between threads) variable. Default = system user.
+my $password :shared = ''; # The server password
+my $quiet = 0; # Don't show Connection information (welcome message) when connecting.
+my $no_timestamps = 0; # Don't show timestamps on incoming messages.
+
+GetOptions(
+	'i|ip:s' => \$ip,
+	'o|port:s' => \$port,
+	'n|no-colors' => \$no_colors,
+	'u|user:s' => \$username,
+	'p|password:s' => \$password,
+	'q|quiet' => \$quiet,
+	't|no-timestamps' => \$no_timestamps
+);
+
+# For telnet style "ip port" only
+if(!defined($ip))
+{
+	$ip = $default_ip;
+	$ip = $ARGV[0] if defined($ARGV[0]);
+}
+($ip,$port) = split(':',$ip) if $ip =~ m/:/; # For ip:port
+
+if(!defined($port))
+{
+	$port = $default_port;
+	$port = $ARGV[1] if defined($ARGV[1]);
+}
+
 ##########
 # Start
 
-# If given Argument 0 then ip = Argument 0 else "127.0.0.1".
-# The ? : construct is called Ternary Operator
-my $ip = $ARGV[0] ? $ARGV[0] : $default_ip;
-my $port = $ARGV[1] ? $ARGV[1] : $default_port;
-
-my $username :shared = getpwuid($<); # The used username as shared (between threads) variable. Default = system user.
-my $password :shared; # The server password
 my $ok :shared = 0; # must be >0 for requesting an ok message (see &requestok)
 
 my $okqueue = Thread::Queue->new();
@@ -57,12 +100,15 @@ sub exittsk
 	exit 0;
 }
 
-# Welcome message
-&textcolor('bold blue',"ChatSimple Client v.1.1.0
+if($quiet == 0)
+{
+	# Welcome message
+	&textcolor('bold blue',"ChatSimple Client v.1.1.0
 IP: $ip
 Port: $port
 Exit: Ctrl+C");
-print "\n";
+	print "\n";
+}
 
 # try to open connection to server
 my $socket = new IO::Socket::INET (
@@ -75,32 +121,39 @@ die "Unable to open connection: $!\n" unless defined $socket;
 # the connection was established.
 &textcolor('green',"Connection established.\n");
 
-my $result;
-# ask for username and password until the server answer is "ok"
-do
-{
-	&textcolor('yellow',"Username (".$username."): ");
-	my $new_username = <STDIN>;
-	$username = $new_username ne "\n" ? $new_username : $username;
-	&textcolor('yellow',"Server Password: ");
-	$password = &getpassword;
-	chomp($username);
-	chomp($password);
 
-	# try to log in
-	print $socket "login".$sep.$username.$sep.$password."\n";
-	
-	# getting server's answer
-	$result = <$socket>;
-	chomp($result);
-	my @data = split($sep,$result);
-	if($data[0] eq "err")
+if (!defined($username))
+{
+	# Show login prompt to user if no credentials supplied
+
+	$username = getpwuid($<); # Set to current User
+	my $result;
+	# ask for username and password until the server answer is "ok"
+	do
 	{
-		&textcolor('red',$data[2]."\n"); # Show error message to user
+		&textcolor('yellow',"Username (".$username."): ");
+		my $new_username = <STDIN>;
+		$username = (defined($new_username) && $new_username ne "\n") ? $new_username : $username;
+		&textcolor('yellow',"Server Password: ");
+		$password = &getpassword;
+		chomp($username);
+		chomp($password);
+
+		$result = &login($username,$password);
+	}
+	until($result eq "ok");
+	undef $result; # clear up for eventually later use
+}
+else
+{
+	# use supplied credentials
+	if(&login($username,$password) ne "ok")
+	{
+		&textcolor('red','Login Failed!');
+		print "\n";
+		exit 1;
 	}
 }
-until($result eq "ok");
-undef $result; # clear up for eventually later use
 
 # Login successfull
 &textcolor('green',"Login successfull.\n");
@@ -171,7 +224,7 @@ while(my $line = <STDIN>)
 	}
 
 }
-&textcolor('red',"This should not happen!");
+&textcolor('yellow',"End of STDIN");
 print "\n";
 exit 1;
 
@@ -245,6 +298,28 @@ sub thread
 	&exittsk;
 }
 
+#########
+# Subs
+
+# try to log in
+sub login
+{
+	my $username = shift;
+	my $password = shift;
+
+	print $socket "login".$sep.$username.$sep.$password."\n";
+
+	# getting server's answer
+	my $result = <$socket>;
+	chomp($result);
+	my @data = split($sep,$result);
+	if($data[0] eq "err")
+	{
+		&textcolor('red',$data[2]."\n"); # Show error message to user
+	}
+	return $data[0];
+}
+
 # Print text with fancy colors
 sub textcolor
 {
@@ -252,21 +327,22 @@ sub textcolor
 	my $text = shift; # The text to colorize
 
 	# Don't use Term::ANSIColor on Windows!
-	if($^O !~ m/mswin/i)
+	if($no_colors == 1 || $^O =~ m/mswin/i)
+	{
+		print $text;
+	}
+	else
 	{
 		print color $color;
 		print $text;
 		print color 'reset';
-	}
-	else
-	{
-		print $text;
 	}
 }
 
 # Print default input heading
 sub newinput
 {
+	return if $no_timestamps;
 	print "\r\e[K"; # Clear last Line
 	print &timestamp." ";
 }
@@ -320,7 +396,7 @@ sub getpassword
 	my $key;
 	# Start reading the keys
 	ReadMode(4); #Disable the control keys
-	while(ord($key = ReadKey(0)) != 10)
+	while(defined($key = ReadKey(0)) && ord($key) != 10)
 	# This will continue until the Enter key is pressed (decimal value of 10)
 	{
 		# For all value of ord($key) see http://www.asciitable.com/
