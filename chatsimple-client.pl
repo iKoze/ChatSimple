@@ -8,13 +8,13 @@
 # ./chatsimple-client.pl [-u username] [-p password] [host[:port]
 #
 # Options
-# -i --ip   : IP-Address / Hostname of Server
-# -o --port : Server-Port
-# -n --no-colors : Don't use colors
-# -u --user : Your username
-# -p --password : The server's password
-# -q --quiet : Don't show welcome message and connection information
-# -t --no-timestamps : Don't draw timestamp before messages.
+# -i, --ip   : IP-Address / Hostname of Server
+# -o, --port : Server-Port
+# -n, --no-colors : Don't use colors
+# -u, --user : Your username
+# -p, --password : The server's password
+# -q, --quiet : Don't show welcome message and connection information
+# -t, --no-timestamps : Don't draw timestamp before messages.
 #
 # Changelog:
 # 4.3.2013 Florian Schiessl:
@@ -26,6 +26,8 @@
 # - added colors for yourself (cyan) and others (magenta)
 # 7.3.2013 Florian Schiessl:
 # - adding command line options for user,pass,etc...
+# 8.3.2013 Florian Schiessl:
+# - adding perlpod documentation after __END__
 #
 
 use strict;
@@ -35,7 +37,7 @@ use threads::shared;
 use Thread::Queue;
 use Term::ANSIColor;
 use Term::ReadKey;
-use Getopt::Long qw ( :config no_ignore_case bundling );
+use Getopt::Long qw( :config no_ignore_case bundling );
 #use Time::HiRes qw( usleep );
 
 ##################
@@ -425,4 +427,49 @@ sub getpassword
 }
 
 __END__
+
+=head1 NAME
+
+chatsimple-client.pl - Simple chat client using a simple chat protocoll.
+
+=head1 SYNOPSIS
+
+B<chatsimple-client.pl> [OPTIONS] [host[:port]]
+
+B<chatsimple-client.pl> -u florian test.example.com:5061
+
+=head1 OPTIONS
+
+=over
+
+=item C<-i, --ip>
+IP-Address / Hostname of Server
+
+=item C<-o, --port>
+Server-Port
+
+=item C<-n, --no-colors>
+Don't use colors
+
+=item C<-u, --user>
+Your username
+
+=item C<-p, --password>
+The server's password
+
+=item C<-q, --quiet>
+Don't show welcome message and connection information
+
+=item C<-t, --no-timestamps>
+Don't draw timestamp before messages.
+
+=back
+
+=head1 AUTHOR
+
+Florian Schiessl <florian at floriware.de> (23.2.2013)
+
+=head1 SEE ALSO
+
+chatsimple-server.pl - the matching server for this client
 
