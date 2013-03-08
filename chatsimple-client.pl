@@ -430,7 +430,7 @@ __END__
 
 =head1 NAME
 
-chatsimple-client.pl - Simple chat client using a simple chat protocoll.
+B<chatsimple-client.pl> - Simple chat client using a simple chat protocoll.
 
 =head1 SYNOPSIS
 
@@ -443,24 +443,31 @@ B<chatsimple-client.pl> -u florian test.example.com:5061
 =over
 
 =item C<-i, --ip>
+
 IP-Address / Hostname of Server
 
 =item C<-o, --port>
+
 Server-Port
 
 =item C<-n, --no-colors>
+
 Don't use colors
 
 =item C<-u, --user>
+
 Your username
 
 =item C<-p, --password>
+
 The server's password
 
 =item C<-q, --quiet>
+
 Don't show welcome message and connection information
 
 =item C<-t, --no-timestamps>
+
 Don't draw timestamp before messages.
 
 =back
@@ -471,5 +478,5 @@ Florian Schiessl <florian at floriware.de> (23.2.2013)
 
 =head1 SEE ALSO
 
-chatsimple-server.pl - the matching server for this client
+B<chatsimple-server.pl> - the matching server for this client
 
