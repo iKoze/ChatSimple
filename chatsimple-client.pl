@@ -128,7 +128,11 @@ if (!defined($username))
 {
 	# Show login prompt to user if no credentials supplied
 
-	$username = getpwuid($<); # Set to current User
+	# Suggest the user's username to the user
+	# http://stackoverflow.com/questions/3526420/how-do-i-get-the-current-user-in-perl-in-a-portable-way
+	$username = getpwuid($<) if !&windows; # Set to current User (Linux)
+	$username = getlogin if &windows; # Use getlogin on Windows.
+
 	my $result;
 	# ask for username and password until the server answer is "ok"
 	do
@@ -329,7 +333,7 @@ sub textcolor
 	my $text = shift; # The text to colorize
 
 	# Don't use Term::ANSIColor on Windows!
-	if($no_colors == 1 || $^O =~ m/mswin/i)
+	if($no_colors == 1 || &windows)
 	{
 		print $text;
 	}
@@ -339,6 +343,11 @@ sub textcolor
 		print $text;
 		print color 'reset';
 	}
+}
+
+sub windows
+{
+	return $^O =~ m/mswin/i;
 }
 
 # Print default input heading
