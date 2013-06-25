@@ -189,6 +189,16 @@ while(my $line = <STDIN>)
 			}
 		}
 		
+		# tell command
+		elsif($line =~ s/tell //g)
+		{
+			my ($receiver, $message);
+			($receiver, $message) = split(" ", $line,2);
+			$receiver = "" if !$receiver;
+			$message = "" if !$message;
+			print $socket "tell".$sep.$username.$sep.$receiver.$sep.$message."\n";
+		}
+		
 		# ask for userlist (output handled by our thread)
 		elsif($line =~ s/list//g)
 		{
@@ -247,6 +257,7 @@ sub thread
 		$data[0] = "" if !$data[0];
 		$data[1] = "" if !$data[1];
 		$data[2] = "" if !$data[2];
+		$data[3] = "" if !$data[3];
 		
 		# Incomming chatmessage
 		if($data[0] eq "msg")
@@ -255,6 +266,15 @@ sub thread
 			&newinput;
 			&textcolor($data[1] eq $username ? 'cyan' : 'magenta',$data[1].": ");
 			print $data[2]."\n";
+		}
+		
+		# Incoming whisper
+		if($data[0] eq "whisper")
+		{
+			print "\e[A" if $data[1] eq $username; # reverse line feed
+			&newinput;
+			&textcolor($data[1] eq $username ? 'cyan' : 'magenta',$data[1]." -> ".$data[2].": ");
+			print $data[3]."\n";
 		}
 		
 		# Incoming notification

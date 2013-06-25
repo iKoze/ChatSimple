@@ -52,6 +52,16 @@ say = identifier für Nachrichten an alle
 username = username, der die Nachricht an den server schickt. Der Username kann während der Laufzeit geändert werden, muss aber über den rename Befehl angekündigt werden.
 
 
+Nachricht von user an anderen user (flüstern)
+=============================================
+< tell::username::receiver1,receiver2::Geheime Nachricht an receiver1, receiver2
+> ok
+
+say = identifier für Nachrichten an bestimmte Empfänger
+username = Absender
+receiver = Liste der Empfänger (Komma separiert)
+
+
 Benachrichtigungen vom Server
 =============================
 > notify::SERVER::"nachricht vom server"
@@ -65,6 +75,14 @@ Eingehende Nachricht vom Server
 
 username = Username, von dem die Nachricht kommt
 msg = Message identifier
+
+
+Eingehende Flüsternachricht vom Server
+======================================
+> whisper::username::receiver1,receiver2::Nachricht
+
+username = Username, von dem die Nachricht kommt
+whisper = Flüsternachricht identifier
 
 
 Nickname change

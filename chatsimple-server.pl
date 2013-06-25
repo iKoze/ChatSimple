@@ -10,6 +10,7 @@ use threads;
 use threads::shared;
 use Time::HiRes qw( usleep );
 use POSIX "setsid";
+use Data::Dumper;
 
 #############
 # Settings
@@ -31,7 +32,6 @@ my @threads; # All running threads.
 my %usernames; # Number of client connection in @conns.
 share(%usernames);
 $usernames{"SERVER"} = -1; # The username SERVER should not be used.
-$usernames{""} = -1; # No username, too.
 my @conns = (); # All client connections.
 share(@conns);
 
@@ -74,16 +74,21 @@ sub thread
 		if(!defined($data[0])){$data[0] = "";}
 		if(!defined($data[1])){$data[1] = "";}
 		if(!defined($data[2])){$data[2] = "";}
+		if(!defined($data[3])){$data[3] = "";}
 		if($loggedin eq "false")
 		{
 			if($data[0] eq "login")
 			{
 				if($data[2] eq $password)
 				{
-					if(!defined($usernames{$data[1]}))
+					if($data[1] eq "")
 					{
-						my $slot = push(@conns,$fileno);
-						$usernames{$data[1]} = $slot;
+						print $conn "err::SERVER::empty username!\n";
+					}
+					elsif(!defined($usernames{$data[1]}))
+					{
+						push(@conns,$fileno);
+						$usernames{$data[1]} = $fileno;
 						$username = $data[1];
 						&debug("[$peerhost] [".$data[1]."] -> logged in");
 						print $conn "ok\n";
@@ -107,12 +112,23 @@ sub thread
 		}
 		else
 		{
-			if($data[0] eq "say")
+			if($data[0] eq "say" || $data[0] eq "tell")
 			{
 				if($data[1] eq $username)
 				{
-					print $conn "ok\n";
-					&tellall("msg::".$username."::".$data[2]."\n");
+					if($data[0] eq "say")
+					{
+						print $conn "ok\n";
+						&tellall("msg::".$username."::".$data[2]."\n");
+					}
+					if($data[0] eq "tell")
+					{
+						print $conn "ok\n";
+						my @receiver = split(",",$data[2]);
+						my @receiver_with_sender = @receiver;
+						push(@receiver_with_sender, $username);
+						&tell("whisper::".$username."::".join(",",@receiver)."::".$data[3]."\n", @receiver_with_sender);
+					}
 				}
 				else
 				{
@@ -195,6 +211,21 @@ sub tellall
 	}
 }
 
+sub tell
+{
+	$data = shift;
+	foreach my $receiver (@_)
+	{
+		#print "DEBUG:".$receiver.$usernames{$receiver}."h\n";
+		$conn = $usernames{$receiver};
+		if (defined($conn))
+		{
+			open my $fh, ">&=$conn" or warn $! and die;
+			print $fh $data;
+		}
+		next;
+	}
+}
 
 
 ###############
