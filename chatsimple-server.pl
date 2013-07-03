@@ -218,7 +218,7 @@ sub tell
 	{
 		#print "DEBUG:".$receiver.$usernames{$receiver}."h\n";
 		$conn = $usernames{$receiver};
-		if (defined($conn))
+		if (defined($conn) && $conn != -1)
 		{
 			open my $fh, ">&=$conn" or warn $! and die;
 			print $fh $data;
